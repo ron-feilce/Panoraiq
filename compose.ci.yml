@@ -1,0 +1,34 @@
+# CI-only credentials; this database is ephemeral and never published.
+services:
+  db:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_DB: studio_test
+      POSTGRES_USER: studio
+      POSTGRES_PASSWORD: ci-only-password
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U studio -d studio_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  tests:
+    image: studio-tests:${IMAGE_TAG:-local}
+    environment:
+      TEST_DATABASE_URL: postgresql+psycopg://studio:ci-only-password@db:5432/studio_test
+      REQUIRE_POSTGRES: "true"
+      COVERAGE_FILE: /tmp/.coverage
+    volumes:
+      - ./test-results:/results
+    depends_on:
+      db:
+        condition: service_healthy
+  app:
+    image: studio-ledger:${IMAGE_TAG:-local}
+    environment:
+      DATABASE_URL: postgresql+psycopg://studio:ci-only-password@db:5432/studio_test
+      SECRET_KEY: ephemeral-ci-session-key-never-used-outside-tests
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy

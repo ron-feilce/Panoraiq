@@ -1,0 +1,15 @@
+*
+!studio/
+!studio/**
+!tests/
+!tests/**
+!scripts/
+!scripts/**
+!infra/
+!infra/*.py
+!requirements.txt
+!requirements-dev.txt
+!pyproject.toml
+**/__pycache__
+**/*.pyc
+infra/generated/

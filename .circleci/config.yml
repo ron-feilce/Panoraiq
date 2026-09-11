@@ -1,0 +1,85 @@
+version: 2.1
+
+jobs:
+  build-test:
+    machine:
+      image: ubuntu-2404:current
+    resource_class: medium
+    environment:
+      IMAGE_TAG: << pipeline.git.revision >>
+    steps:
+      - checkout
+      - run:
+          name: Skip documentation-only changes
+          command: bash scripts/ci-changes.sh
+      - run:
+          name: Build the custom application and test images
+          command: |
+            docker build --target runtime --tag "studio-ledger:$IMAGE_TAG" .
+            docker build --target test --tag "studio-tests:$IMAGE_TAG" .
+            docker run --rm "studio-tests:$IMAGE_TAG" python -m ruff check studio tests scripts infra
+      - run:
+          name: Test against the PostgreSQL secondary container
+          command: |
+            mkdir -p test-results
+            chmod 777 test-results
+            docker compose -f compose.ci.yml run --rm tests
+      - run:
+          name: Smoke test the exact release image
+          command: bash scripts/smoke.sh
+      - run:
+          name: Package the tested image
+          command: bash scripts/package.sh
+      - run:
+          name: Collect container logs and clean up
+          when: always
+          command: |
+            mkdir -p test-results
+            docker compose -f compose.ci.yml logs --no-color > test-results/containers.log 2>&1 || true
+            docker compose -f compose.ci.yml down --volumes --remove-orphans
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: test-results
+          destination: test-results
+      - persist_to_workspace:
+          root: .
+          paths:
+            - artifacts
+
+  publish:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - run:
+          name: Skip documentation-only releases
+          command: bash scripts/ci-changes.sh
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install release client
+          command: pip install boto3==1.42.68
+      - run:
+          name: Exchange OIDC token and publish to private S3
+          command: python scripts/publish.py
+      - store_artifacts:
+          path: artifacts/release.json
+          destination: release-receipt.json
+
+workflows:
+  studio:
+    jobs:
+      - build-test
+      - approve-release:
+          type: approval
+          requires: [build-test]
+          filters:
+            branches:
+              only: main
+      - publish:
+          requires: [approve-release]
+          context: studio-production
+          filters:
+            branches:
+              only: main

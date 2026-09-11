@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.py[cod]
+.env
+instance/
+test-results/
+artifacts/
+.coverage
+htmlcov/
+.codesight/
+*.egg-info/
+infra/generated/

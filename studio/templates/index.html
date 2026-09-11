@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A quiet place for your creative work and where it goes next.">
+  <title>Studio Ledger · Your creative practice</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='studio.css') }}">
+  <script src="{{ url_for('static', filename='studio.js') }}" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark" aria-hidden="true">sl.</span> Studio Ledger</a>
+    <span class="top-note">A little room for your creative practice</span>
+    <span class="studio-label"><span class="live-dot"></span> Personal studio</span>
+  </header>
+  <main>
+    <section class="intro">
+      <div><p class="eyebrow">THE STUDIO / WORKS & POSSIBILITIES</p><h1>Made of many things.</h1>
+      <p class="intro-copy">A home for what you make, and a record of where it goes.</p></div>
+      <button class="button primary" data-open="add-work"><span aria-hidden="true">＋</span> Add a work</button>
+    </section>
+    {% for message in get_flashed_messages() %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+    {% if error %}<p class="notice error" role="alert">{{ error }}</p>{% endif %}
+    <section class="stats" aria-label="Studio overview">
+      <div><span class="stat-number">{{ all_works|length }}</span><span>Works in the studio</span><span class="stat-symbol" aria-hidden="true">▦</span></div>
+      <div><span class="stat-number">{{ counts.draft }}</span><span>Waiting for their moment</span><span class="stat-symbol" aria-hidden="true">◌</span></div>
+      <div><span class="stat-number">{{ counts.submitted }}</span><span>Out in the world</span><span class="stat-symbol" aria-hidden="true">↗</span></div>
+      <div><span class="stat-number selected-number">{{ counts.selected }}</span><span>Selected & celebrated</span><span class="stat-symbol" aria-hidden="true">✳</span></div>
+    </section>
+    <section class="collection" aria-labelledby="collection-title">
+      <div class="section-heading"><h2 id="collection-title">Your collection <span>{{ works|length }}</span></h2><span class="muted">Every piece has a beginning.</span></div>
+      <form class="filters" method="get" id="filters">
+        <div class="medium-tabs" role="group" aria-label="Filter by medium">
+          {% for value, label in [('', 'All works'), ('painting', 'Paintings'), ('poetry', 'Poetry'), ('music', 'Music')] %}
+          <button name="medium" value="{{ value }}" class="tab {{ 'active' if medium == value }}" aria-pressed="{{ 'true' if medium == value else 'false' }}">{{ label }}</button>
+          {% endfor %}
+        </div>
+        <div class="filter-inputs">
+          <label class="search"><span aria-hidden="true">⌕</span><input type="search" name="q" value="{{ query }}" placeholder="Find a work…" aria-label="Search works"></label>
+          <label class="sr-only" for="status-filter">Submission status</label>
+          <select id="status-filter" name="status"><option value="">All statuses</option>{% for state in statuses %}<option value="{{ state }}" {{ 'selected' if state == status }}>{{ state|capitalize }}</option>{% endfor %}</select>
+          <button class="button filter-apply" name="medium" value="{{ medium }}">Apply</button>
+        </div>
+      </form>
+      <div class="work-grid">
+        {% for work in works %}
+        <a class="work-card" href="{{ url_for('index', work=work.id, medium=medium, status=status, q=query) }}" aria-label="View {{ work.title }}">
+          <div class="artwork art-{{ work.medium }} art-variant-{{ loop.index % 3 }}">
+            {% if work.media_url and work.medium == 'painting' %}
+            <img src="{{ work.media_url }}" alt="{{ work.title }}" loading="lazy" referrerpolicy="no-referrer">
+            {% elif work.medium == 'poetry' %}
+            <div class="poem-preview"><span class="small-caps">A POEM</span><span class="poem-title">{{ work.title }}</span><span class="poem-line"></span><span class="poem-description">{{ work.description[:115] }}{% if work.description|length > 115 %}…{% endif %}</span></div>
+            {% elif work.medium == 'music' %}
+            <div class="record" aria-hidden="true"><span></span></div><span class="audio-label">{{ 'LINKED AUDIO' if work.media_url else 'A SOUND IN PROGRESS' }}</span>
+            {% else %}
+            <div class="abstract-shape shape-one"></div><div class="abstract-shape shape-two"></div><div class="abstract-shape shape-three"></div><span class="placeholder-label">STUDIO STUDY · MEDIA NOT LINKED</span>
+            {% endif %}
+            <span class="status status-{{ work.status }}">{{ work.status|capitalize }}</span>
+          </div>
+          <div class="card-copy"><div class="card-meta"><span>{{ work.medium }}</span><span>{{ work.created_on.strftime('%b %Y') }}</span></div><h3>{{ work.title }} <span aria-hidden="true">↗</span></h3><p>{{ work.description or 'A new beginning. Add its story as it unfolds.' }}</p>
+          <div class="card-footer">{% if work.submissions %}<span>{{ work.submissions|length }} submission{{ 's' if work.submissions|length != 1 }}</span>{% else %}<span>Still in the studio</span>{% endif %}<span>{{ work.editions|length }} edition{{ 's' if work.editions|length != 1 }}</span></div></div>
+        </a>
+        {% else %}
+        <div class="empty-state"><span aria-hidden="true">✳</span><h3>{{ 'No works match just yet.' if all_works else 'Make room for your first work.' }}</h3><p>{{ 'Try another medium, status, or search.' if all_works else 'A painting, a poem, a melody. It all belongs here.' }}</p>{% if all_works %}<a class="button" href="/">Clear filters</a>{% else %}<button class="button primary" data-open="add-work">Add your first work</button>{% endif %}</div>
+        {% endfor %}
+      </div>
+    </section>
+    <footer><span class="brand-small">sl.</span><span>Keep making. Keep a little record.</span><span class="footer-right">YOUR PRACTICE, AT YOUR PACE.</span></footer>
+  </main>
+
+  <dialog id="add-work" class="form-dialog" {{ 'data-reopen' if error and request.endpoint == 'add_work' }}>
+    <div class="dialog-heading"><div><p class="eyebrow">A NEW BEGINNING</p><h2>Add a work</h2></div><button type="button" class="icon-button" data-close aria-label="Close add work">×</button></div>
+    <form action="{{ url_for('add_work') }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Title<input name="title" required maxlength="160" placeholder="Give it a name" value="{{ values.get('title', '') }}"></label>
+      <div class="form-row"><label>Medium<select name="medium">{% for item in media %}<option value="{{ item }}" {{ 'selected' if values.get('medium') == item }}>{{ item|capitalize }}</option>{% endfor %}</select></label><label>Creation date<input type="date" name="created_on" required value="{{ values.get('created_on', today) }}"></label></div>
+      <label>Description<textarea name="description" maxlength="5000" rows="3" placeholder="A few words about this piece…">{{ values.get('description', '') }}</textarea></label>
+      <label>Media link <span class="optional">optional</span><input name="media_url" type="url" maxlength="2048" placeholder="https://…" value="{{ values.get('media_url', '') }}"></label>
+      <p class="field-note">Link to an image, audio, or a page for the work.</p>
+      <details><summary>Authorship & copyright</summary><label>Author<input name="author" maxlength="160" value="{{ values.get('author', '') }}"></label><label>Copyright note<input name="copyright_note" maxlength="500" placeholder="e.g. © 2026 Your name. All rights reserved." value="{{ values.get('copyright_note', '') }}"></label></details>
+      <div class="form-actions"><button type="button" class="button" data-close>Cancel</button><button class="button primary">Save work</button></div>
+    </form>
+  </dialog>
+
+  {% if selected %}
+  <aside class="detail-backdrop"><section class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detail-title" tabindex="-1">
+    <div class="dialog-heading"><p class="eyebrow">FROM YOUR STUDIO</p><a class="icon-button" href="{{ url_for('index', medium=medium, status=status, q=query) }}" aria-label="Close work details">×</a></div>
+    <div class="detail-tags"><span class="small-caps">{{ selected.medium }}</span><span class="status status-{{ selected.status }}">{{ selected.status|capitalize }}</span></div>
+    <h2 id="detail-title">{{ selected.title }}</h2><p class="detail-description">{{ selected.description or 'This piece is still finding its words.' }}</p>
+    <p class="muted">Created {{ selected.created_on.strftime('%B %d, %Y') }}</p>
+    {% if selected.media_url %}<a class="button media-button" href="{{ selected.media_url }}" target="_blank" rel="noopener noreferrer">Open linked media ↗</a>{% endif %}
+    <dl class="identity"><dt>Work ID</dt><dd>{{ selected.id }}</dd><dt>Author</dt><dd>{{ selected.author or 'Not recorded' }}</dd><dt>Copyright</dt><dd>{{ selected.copyright_note or 'Not recorded' }}</dd></dl>
+    <section class="detail-section"><h3>Submissions <span>{{ selected.submissions|length }}</span></h3><p class="field-note">Selected takes priority, then submitted. With neither, a work is a draft.</p>
+      {% for submission in selected.submissions %}
+      <article class="submission"><strong>{{ submission.venue }}</strong><span class="muted">{{ submission.submitted_on.strftime('%b %d, %Y') }}</span>
+        <form method="post" action="{{ url_for('update_submission', submission_id=submission.id, work=selected.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="sr-only" for="submission-{{ submission.id }}">Status for {{ submission.venue }}</label><select id="submission-{{ submission.id }}" name="status">{% for state in statuses %}<option value="{{ state }}" {{ 'selected' if submission.status == state }}>{{ state|capitalize }}</option>{% endfor %}</select><button class="button">Update</button></form>
+      </article>
+      {% else %}<p class="detail-empty">Nothing sent out yet. Its moment will come.</p>{% endfor %}
+      <details {{ 'open' if error and request.endpoint == 'add_submission' }}><summary>＋ Record a submission</summary><form method="post" action="{{ url_for('add_submission', work_id=selected.id, work=selected.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Gallery or event<input name="venue" maxlength="160" required value="{{ values.get('venue', '') }}"></label><div class="form-row"><label>Submission date<input type="date" name="submitted_on" value="{{ values.get('submitted_on', today) }}" required></label><label>Status<select name="status">{% for state in statuses %}<option value="{{ state }}" {{ 'selected' if values.get('status', 'submitted') == state }}>{{ state|capitalize }}</option>{% endfor %}</select></label></div><button class="button primary">Save submission</button></form></details>
+    </section>
+    <section class="detail-section"><h3>Digital editions <span>{{ selected.editions|length }}</span></h3><p class="field-note">Optional, manually recorded mint information. These records do not verify ownership, authorship, or copyright.</p>
+      {% for edition in selected.editions %}<article class="edition"><strong>{{ edition.chain }} · Token {{ edition.token_id }}</strong><span class="unverified">Unverified record</span><dl><dt>Contract</dt><dd>{{ edition.contract_address }}</dd><dt>Metadata URI</dt><dd>{{ edition.metadata_uri or 'Not recorded' }}</dd><dt>Transaction</dt><dd>{{ edition.transaction_hash or 'Not recorded' }}</dd><dt>Recorded token owner</dt><dd>{{ edition.recorded_owner or 'Not recorded' }}</dd></dl></article>{% else %}<p class="detail-empty">The work exists. An edition is optional.</p>{% endfor %}
+      <details {{ 'open' if error and request.endpoint == 'add_edition' }}><summary>＋ Record an edition</summary><form action="{{ url_for('add_edition', work_id=selected.id, work=selected.id) }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% for name, label, limit in [('chain', 'Chain (use a consistent ID, e.g. eip155:1)', 80), ('contract_address', 'Contract address', 200), ('token_id', 'Token ID', 160), ('metadata_uri', 'Metadata URI (optional)', 2048), ('transaction_hash', 'Transaction hash (optional)', 200), ('recorded_owner', 'Recorded token owner (optional)', 200)] %}<label>{{ label }}<input name="{{ name }}" maxlength="{{ limit }}" {{ 'required' if loop.index <= 3 }} value="{{ values.get(name, '') }}"></label>{% endfor %}<button class="button primary">Save edition record</button></form></details>
+    </section>
+  </section></aside>
+  {% endif %}
+</body>
+</html>
