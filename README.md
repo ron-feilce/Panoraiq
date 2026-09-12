@@ -85,7 +85,7 @@ To exercise the same PostgreSQL container arrangement as CI, in Bash:
 
 ```sh
 export IMAGE_TAG=local
-docker build --target runtime -t panoraiq-ledger:local .
+docker build --target runtime -t panoraiq:local .
 docker build --target test -t panoraiq-tests:local .
 docker build --target smoke -t panoraiq-smoke:local .
 mkdir -p test-results && chmod 777 test-results

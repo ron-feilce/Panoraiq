@@ -45,8 +45,8 @@ a new bucket and does not import one.
 Using an authorized AWS administrator session, provision the reviewed template:
 
 ```sh
-aws cloudformation deploy --template-file infra/generated/stack.json --stack-name panoraiq-ledger-releases --capabilities CAPABILITY_IAM --region us-east-1
-aws cloudformation describe-stacks --stack-name panoraiq-ledger-releases --region us-east-1 --query 'Stacks[0].Outputs'
+aws cloudformation deploy --template-file infra/generated/stack.json --stack-name panoraiq-releases --capabilities CAPABILITY_IAM --region us-east-1
+aws cloudformation describe-stacks --stack-name panoraiq-releases --region us-east-1 --query 'Stacks[0].Outputs'
 ```
 
 Store the output bucket name and role ARN for the next step. Standard storage/request
