@@ -31,16 +31,17 @@
     <section class="collection" aria-labelledby="collection-title">
       <div class="section-heading"><h2 id="collection-title">Your collection <span>{{ works|length }}</span></h2><span class="muted">Every piece has a beginning.</span></div>
       <form class="filters" method="get" id="filters">
+        <input type="hidden" name="medium" value="{{ medium }}">
         <div class="medium-tabs" role="group" aria-label="Filter by medium">
           {% for value, label in [('', 'All works'), ('painting', 'Paintings'), ('poetry', 'Poetry'), ('music', 'Music')] %}
-          <button name="medium" value="{{ value }}" class="tab {{ 'active' if medium == value }}" aria-pressed="{{ 'true' if medium == value else 'false' }}">{{ label }}</button>
+          <a href="{{ url_for('index', medium=value, status=status, q=query) }}" class="tab {{ 'active' if medium == value }}" {{ 'aria-current=page' if medium == value }}>{{ label }}</a>
           {% endfor %}
         </div>
         <div class="filter-inputs">
           <label class="search"><span aria-hidden="true">⌕</span><input type="search" name="q" value="{{ query }}" placeholder="Find a work…" aria-label="Search works"></label>
           <label class="sr-only" for="status-filter">Submission status</label>
           <select id="status-filter" name="status"><option value="">All statuses</option>{% for state in statuses %}<option value="{{ state }}" {{ 'selected' if state == status }}>{{ state|capitalize }}</option>{% endfor %}</select>
-          <button class="button filter-apply" name="medium" value="{{ medium }}">Apply</button>
+          <button class="button filter-apply">Apply</button>
         </div>
       </form>
       <div class="work-grid">
@@ -71,6 +72,7 @@
 
   <dialog id="add-work" class="form-dialog" {{ 'data-reopen' if error and request.endpoint == 'add_work' }}>
     <div class="dialog-heading"><div><p class="eyebrow">A NEW BEGINNING</p><h2>Add a work</h2></div><button type="button" class="icon-button" data-close aria-label="Close add work">×</button></div>
+    {% if error and request.endpoint == 'add_work' %}<p class="notice error" role="alert">{{ error }}</p>{% endif %}
     <form action="{{ url_for('add_work') }}" method="post">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label>Title<input name="title" required maxlength="160" placeholder="Give it a name" value="{{ values.get('title', '') }}"></label>
@@ -86,6 +88,7 @@
   {% if selected %}
   <aside class="detail-backdrop"><section class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detail-title" tabindex="-1">
     <div class="dialog-heading"><p class="eyebrow">FROM YOUR STUDIO</p><a class="icon-button" href="{{ url_for('index', medium=medium, status=status, q=query) }}" aria-label="Close work details">×</a></div>
+    {% if error %}<p class="notice error" role="alert">{{ error }}</p>{% endif %}
     <div class="detail-tags"><span class="small-caps">{{ selected.medium }}</span><span class="status status-{{ selected.status }}">{{ selected.status|capitalize }}</span></div>
     <h2 id="detail-title">{{ selected.title }}</h2><p class="detail-description">{{ selected.description or 'This piece is still finding its words.' }}</p>
     <p class="muted">Created {{ selected.created_on.strftime('%B %d, %Y') }}</p>

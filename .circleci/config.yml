@@ -17,6 +17,7 @@ jobs:
           command: |
             docker build --target runtime --tag "studio-ledger:$IMAGE_TAG" .
             docker build --target test --tag "studio-tests:$IMAGE_TAG" .
+            docker build --target smoke --tag "studio-smoke:$IMAGE_TAG" .
             docker run --rm "studio-tests:$IMAGE_TAG" python -m ruff check studio tests scripts infra
       - run:
           name: Test against the PostgreSQL secondary container

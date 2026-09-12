@@ -1,4 +1,11 @@
 # syntax=docker/dockerfile:1
+FROM eclipse-temurin:21-jdk-jammy AS smoke
+WORKDIR /probe
+COPY tools/SmokeCheck.java .
+RUN javac --release 17 SmokeCheck.java
+USER 10001:10001
+ENTRYPOINT ["java", "SmokeCheck"]
+
 FROM python:3.12-slim-bookworm AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 WORKDIR /app

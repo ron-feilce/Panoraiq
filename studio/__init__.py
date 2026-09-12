@@ -23,9 +23,12 @@ def enable_sqlite_foreign_keys(connection, _):
 def field(name, limit, required=True):
     value = request.form.get(name, "").strip()
     if (required and not value) or len(value) > limit:
-        raise ValueError(f"{name.replace('_', ' ').capitalize()} is required and must be "
-                         f"at most {limit} characters." if required else
-                         f"{name.replace('_', ' ').capitalize()} must be at most {limit} characters.")
+        raise ValueError(
+            f"{name.replace('_', ' ').capitalize()} is required and must be "
+            f"at most {limit} characters."
+            if required
+            else f"{name.replace('_', ' ').capitalize()} must be at most {limit} characters."
+        )
     return value
 
 
@@ -40,8 +43,10 @@ def link(name, metadata=False):
         if not valid or any(char.isspace() for char in value):
             raise ValueError
     except ValueError:
-        raise ValueError(f"{name.replace('_', ' ').capitalize()} must be a valid "
-                         f"{'HTTP(S), IPFS, or Arweave' if metadata else 'HTTP(S)'} link.") from None
+        raise ValueError(
+            f"{name.replace('_', ' ').capitalize()} must be a valid "
+            f"{'HTTP(S), IPFS, or Arweave' if metadata else 'HTTP(S)'} link."
+        ) from None
     return value
 
 
@@ -95,19 +100,35 @@ def create_app(test_config=None):
         query = request.args.get("q", "").strip()
         if (medium and medium not in MEDIA) or (status and status not in STATUSES):
             abort(400, "Invalid filter.")
-        all_works = db.session.scalars(select(Work).order_by(Work.created_on.desc(), Work.title)).all()
-        works = [work for work in all_works
-                 if (not medium or work.medium == medium) and
-                 (not status or work.status == status) and
-                 (not query or query.casefold() in f"{work.title} {work.description}".casefold())]
+        all_works = db.session.scalars(
+            select(Work).order_by(Work.created_on.desc(), Work.title)
+        ).all()
+        works = [
+            work
+            for work in all_works
+            if (not medium or work.medium == medium)
+            and (not status or work.status == status)
+            and (not query or query.casefold() in f"{work.title} {work.description}".casefold())
+        ]
         selected = None
         if request.args.get("work"):
             selected = db.get_or_404(Work, request.args["work"])
         counts = {state: sum(work.status == state for work in all_works) for state in STATUSES}
-        return render_template("index.html", works=works, all_works=all_works, selected=selected,
-                               medium=medium, status=status, query=query, counts=counts,
-                               media=MEDIA, statuses=STATUSES, today=date.today().isoformat(),
-                               error=error, values=request.form), code
+        return render_template(
+            "index.html",
+            works=works,
+            all_works=all_works,
+            selected=selected,
+            medium=medium,
+            status=status,
+            query=query,
+            counts=counts,
+            media=MEDIA,
+            statuses=STATUSES,
+            today=date.today().isoformat(),
+            error=error,
+            values=request.form,
+        ), code
 
     @app.get("/")
     def index():
@@ -125,10 +146,15 @@ def create_app(test_config=None):
     @app.post("/works")
     def add_work():
         try:
-            work = Work(title=field("title", 160), medium=chosen("medium", MEDIA),
-                        description=field("description", 5000, False), media_url=link("media_url"),
-                        created_on=form_date("created_on"), author=field("author", 160, False),
-                        copyright_note=field("copyright_note", 500, False))
+            work = Work(
+                title=field("title", 160),
+                medium=chosen("medium", MEDIA),
+                description=field("description", 5000, False),
+                media_url=link("media_url"),
+                created_on=form_date("created_on"),
+                author=field("author", 160, False),
+                copyright_note=field("copyright_note", 500, False),
+            )
             db.session.add(work)
             db.session.commit()
         except ValueError as exc:
@@ -140,9 +166,12 @@ def create_app(test_config=None):
     def add_submission(work_id):
         work = db.get_or_404(Work, work_id)
         try:
-            submission = Submission(work=work, venue=field("venue", 160),
-                                    submitted_on=form_date("submitted_on"),
-                                    status=chosen("status", STATUSES))
+            submission = Submission(
+                work=work,
+                venue=field("venue", 160),
+                submitted_on=form_date("submitted_on"),
+                status=chosen("status", STATUSES),
+            )
             db.session.add(submission)
             db.session.commit()
         except ValueError as exc:
@@ -170,10 +199,14 @@ def create_app(test_config=None):
             if address.startswith("0x"):
                 address = address.lower()
             edition = DigitalEdition(
-                work=work, chain=chain, contract_address=address,
-                token_id=field("token_id", 160), metadata_uri=link("metadata_uri", metadata=True),
+                work=work,
+                chain=chain,
+                contract_address=address,
+                token_id=field("token_id", 160),
+                metadata_uri=link("metadata_uri", metadata=True),
                 transaction_hash=field("transaction_hash", 200, False),
-                recorded_owner=field("recorded_owner", 200, False))
+                recorded_owner=field("recorded_owner", 200, False),
+            )
             db.session.add(edition)
             db.session.commit()
         except ValueError as exc:
@@ -194,6 +227,7 @@ def create_app(test_config=None):
     def seed_demo():
         """Add clearly fictional examples to an empty catalog only."""
         from studio.seed import seed
+
         seed()
         click.echo("Demo catalog ready.")
 

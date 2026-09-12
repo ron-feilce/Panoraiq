@@ -27,8 +27,16 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://studio:ci-only-password@db:5432/studio_test
       SECRET_KEY: ephemeral-ci-session-key-never-used-outside-tests
-    ports:
-      - "127.0.0.1:8000:8000"
     depends_on:
       db:
+        condition: service_healthy
+    healthcheck:
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  smoke:
+    image: studio-smoke:${IMAGE_TAG:-local}
+    command: ["http://app:8000"]
+    depends_on:
+      app:
         condition: service_healthy

@@ -20,11 +20,13 @@ class Work(db.Model):
     created_on = db.Column(db.Date, nullable=False, default=date.today)
     author = db.Column(db.String(160), nullable=False, default="")
     copyright_note = db.Column(db.String(500), nullable=False, default="")
-    submissions = db.relationship("Submission", backref="work", lazy="selectin",
-                                  order_by="desc(Submission.submitted_on)")
+    submissions = db.relationship(
+        "Submission", backref="work", lazy="selectin", order_by="desc(Submission.submitted_on)"
+    )
     editions = db.relationship("DigitalEdition", backref="work", lazy="selectin")
-    __table_args__ = (CheckConstraint("medium IN ('painting', 'poetry', 'music')",
-                                     name="valid_work_medium"),)
+    __table_args__ = (
+        CheckConstraint("medium IN ('painting', 'poetry', 'music')", name="valid_work_medium"),
+    )
 
     @property
     def status(self):
@@ -34,19 +36,24 @@ class Work(db.Model):
 
 class Submission(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    work_id = db.Column(db.String(36), db.ForeignKey("work.id", ondelete="RESTRICT"),
-                        nullable=False, index=True)
+    work_id = db.Column(
+        db.String(36), db.ForeignKey("work.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
     venue = db.Column(db.String(160), nullable=False)
     submitted_on = db.Column(db.Date, nullable=False)
     status = db.Column(db.String(20), nullable=False, default="submitted")
-    __table_args__ = (CheckConstraint("status IN ('draft', 'submitted', 'selected')",
-                                     name="valid_submission_status"),)
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('draft', 'submitted', 'selected')", name="valid_submission_status"
+        ),
+    )
 
 
 class DigitalEdition(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    work_id = db.Column(db.String(36), db.ForeignKey("work.id", ondelete="RESTRICT"),
-                        nullable=False, index=True)
+    work_id = db.Column(
+        db.String(36), db.ForeignKey("work.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
     chain = db.Column(db.String(80), nullable=False)
     contract_address = db.Column(db.String(200), nullable=False)
     token_id = db.Column(db.String(160), nullable=False)
@@ -54,5 +61,6 @@ class DigitalEdition(db.Model):
     transaction_hash = db.Column(db.String(200), nullable=False, default="")
     # A manually recorded claim, not verified ownership or authorship.
     recorded_owner = db.Column(db.String(200), nullable=False, default="")
-    __table_args__ = (UniqueConstraint("chain", "contract_address", "token_id",
-                                     name="unique_chain_token"),)
+    __table_args__ = (
+        UniqueConstraint("chain", "contract_address", "token_id", name="unique_chain_token"),
+    )
