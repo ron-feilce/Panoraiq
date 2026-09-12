@@ -4,26 +4,26 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="A quiet place for your creative work and where it goes next.">
-  <title>Studio Ledger · Your creative practice</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='studio.css') }}">
-  <script src="{{ url_for('static', filename='studio.js') }}" defer></script>
+  <title>Panoraiq · Your creative practice</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='panoraiq.css') }}">
+  <script src="{{ url_for('static', filename='panoraiq.js') }}" defer></script>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark" aria-hidden="true">sl.</span> Studio Ledger</a>
+    <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark" aria-hidden="true">sl.</span> panoraiq Ledger</a>
     <span class="top-note">A little room for your creative practice</span>
-    <span class="studio-label"><span class="live-dot"></span> Personal studio</span>
+    <span class="panoraiq-label"><span class="live-dot"></span> Personal panoraiq</span>
   </header>
   <main>
     <section class="intro">
-      <div><p class="eyebrow">THE STUDIO / WORKS & POSSIBILITIES</p><h1>Made of many things.</h1>
+      <div><p class="eyebrow">THE panoraiq / WORKS & POSSIBILITIES</p><h1>Made of many things.</h1>
       <p class="intro-copy">A home for what you make, and a record of where it goes.</p></div>
       <button class="button primary" data-open="add-work"><span aria-hidden="true">＋</span> Add a work</button>
     </section>
     {% for message in get_flashed_messages() %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
     {% if error %}<p class="notice error" role="alert">{{ error }}</p>{% endif %}
-    <section class="stats" aria-label="Studio overview">
-      <div><span class="stat-number">{{ all_works|length }}</span><span>Works in the studio</span><span class="stat-symbol" aria-hidden="true">▦</span></div>
+    <section class="stats" aria-label="panoraiq overview">
+      <div><span class="stat-number">{{ all_works|length }}</span><span>Works in the panoraiq</span><span class="stat-symbol" aria-hidden="true">▦</span></div>
       <div><span class="stat-number">{{ counts.draft }}</span><span>Waiting for their moment</span><span class="stat-symbol" aria-hidden="true">◌</span></div>
       <div><span class="stat-number">{{ counts.submitted }}</span><span>Out in the world</span><span class="stat-symbol" aria-hidden="true">↗</span></div>
       <div><span class="stat-number selected-number">{{ counts.selected }}</span><span>Selected & celebrated</span><span class="stat-symbol" aria-hidden="true">✳</span></div>
@@ -55,12 +55,12 @@
             {% elif work.medium == 'music' %}
             <div class="record" aria-hidden="true"><span></span></div><span class="audio-label">{{ 'LINKED AUDIO' if work.media_url else 'A SOUND IN PROGRESS' }}</span>
             {% else %}
-            <div class="abstract-shape shape-one"></div><div class="abstract-shape shape-two"></div><div class="abstract-shape shape-three"></div><span class="placeholder-label">STUDIO STUDY · MEDIA NOT LINKED</span>
+            <div class="abstract-shape shape-one"></div><div class="abstract-shape shape-two"></div><div class="abstract-shape shape-three"></div><span class="placeholder-label">panoraiq STUDY · MEDIA NOT LINKED</span>
             {% endif %}
             <span class="status status-{{ work.status }}">{{ work.status|capitalize }}</span>
           </div>
           <div class="card-copy"><div class="card-meta"><span>{{ work.medium }}</span><span>{{ work.created_on.strftime('%b %Y') }}</span></div><h3>{{ work.title }} <span aria-hidden="true">↗</span></h3><p>{{ work.description or 'A new beginning. Add its story as it unfolds.' }}</p>
-          <div class="card-footer">{% if work.submissions %}<span>{{ work.submissions|length }} submission{{ 's' if work.submissions|length != 1 }}</span>{% else %}<span>Still in the studio</span>{% endif %}<span>{{ work.editions|length }} edition{{ 's' if work.editions|length != 1 }}</span></div></div>
+          <div class="card-footer">{% if work.submissions %}<span>{{ work.submissions|length }} submission{{ 's' if work.submissions|length != 1 }}</span>{% else %}<span>Still in the panoraiq</span>{% endif %}<span>{{ work.editions|length }} edition{{ 's' if work.editions|length != 1 }}</span></div></div>
         </a>
         {% else %}
         <div class="empty-state"><span aria-hidden="true">✳</span><h3>{{ 'No works match just yet.' if all_works else 'Make room for your first work.' }}</h3><p>{{ 'Try another medium, status, or search.' if all_works else 'A painting, a poem, a melody. It all belongs here.' }}</p>{% if all_works %}<a class="button" href="/">Clear filters</a>{% else %}<button class="button primary" data-open="add-work">Add your first work</button>{% endif %}</div>
@@ -87,7 +87,7 @@
 
   {% if selected %}
   <aside class="detail-backdrop"><section class="detail-panel" role="dialog" aria-modal="true" aria-labelledby="detail-title" tabindex="-1">
-    <div class="dialog-heading"><p class="eyebrow">FROM YOUR STUDIO</p><a class="icon-button" href="{{ url_for('index', medium=medium, status=status, q=query) }}" aria-label="Close work details">×</a></div>
+    <div class="dialog-heading"><p class="eyebrow">FROM YOUR panoraiq</p><a class="icon-button" href="{{ url_for('index', medium=medium, status=status, q=query) }}" aria-label="Close work details">×</a></div>
     {% if error %}<p class="notice error" role="alert">{{ error }}</p>{% endif %}
     <div class="detail-tags"><span class="small-caps">{{ selected.medium }}</span><span class="status status-{{ selected.status }}">{{ selected.status|capitalize }}</span></div>
     <h2 id="detail-title">{{ selected.title }}</h2><p class="detail-description">{{ selected.description or 'This piece is still finding its words.' }}</p>

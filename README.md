@@ -1,6 +1,6 @@
-# Studio Ledger
+# panoraiq Ledger
 
-A small artist’s studio inventory, built for the CircleCI Field Engineer challenge.
+A small artist’s panoraiq inventory, built for the CircleCI Field Engineer challenge.
 Paintings, poems, music, and the places they go. Flask, PostgreSQL, and one page.
 
 Repository: [ron-feilce/Panoraiq](https://github.com/ron-feilce/Panoraiq).
@@ -19,8 +19,8 @@ for `POSTGRES_PASSWORD` (hex avoids URL-escaping issues). Then:
 
 ```sh
 docker compose build
-docker compose run --rm app flask --app studio init-db
-docker compose run --rm app flask --app studio seed-demo
+docker compose run --rm app flask --app panoraiq init-db
+docker compose run --rm app flask --app panoraiq seed-demo
 docker compose up -d
 ```
 
@@ -40,14 +40,14 @@ Python 3.12+; the container uses Python 3.12. From PowerShell:
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 $env:SECRET_KEY = .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_hex(32))"
-.\.venv\Scripts\python.exe -m flask --app studio init-db
-.\.venv\Scripts\python.exe -m flask --app studio seed-demo
-.\.venv\Scripts\python.exe -m flask --app studio run
+.\.venv\Scripts\python.exe -m flask --app panoraiq init-db
+.\.venv\Scripts\python.exe -m flask --app panoraiq seed-demo
+.\.venv\Scripts\python.exe -m flask --app panoraiq run
 ```
 
 Open **http://localhost:5000**. SQLite is a convenient preview and unit-test fallback;
 the required CI integration tests explicitly refuse to run without PostgreSQL.
-Set `DATABASE_URL=postgresql+psycopg://user:password@host:5432/studio` to use PostgreSQL
+Set `DATABASE_URL=postgresql+psycopg://user:password@host:5432/panoraiq` to use PostgreSQL
 outside Compose. Keep `SECRET_KEY` stable between app restarts if preserving sessions.
 
 This is a single-user demonstration with no login. Compose binds only to loopback.
@@ -77,17 +77,17 @@ system; introduce versioned migrations before changing a populated production sc
 ## Test
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest --junitxml=test-results/junit.xml --cov=studio
-.\.venv\Scripts\python.exe -m ruff check studio tests scripts infra
+.\.venv\Scripts\python.exe -m pytest --junitxml=test-results/junit.xml --cov=panoraiq
+.\.venv\Scripts\python.exe -m ruff check panoraiq tests scripts infra
 ```
 
 To exercise the same PostgreSQL container arrangement as CI, in Bash:
 
 ```sh
 export IMAGE_TAG=local
-docker build --target runtime -t studio-ledger:local .
-docker build --target test -t studio-tests:local .
-docker build --target smoke -t studio-smoke:local .
+docker build --target runtime -t panoraiq-ledger:local .
+docker build --target test -t panoraiq-tests:local .
+docker build --target smoke -t panoraiq-smoke:local .
 mkdir -p test-results && chmod 777 test-results
 docker compose -f compose.ci.yml run --rm tests
 bash scripts/smoke.sh

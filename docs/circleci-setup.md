@@ -45,8 +45,8 @@ a new bucket and does not import one.
 Using an authorized AWS administrator session, provision the reviewed template:
 
 ```sh
-aws cloudformation deploy --template-file infra/generated/stack.json --stack-name studio-ledger-releases --capabilities CAPABILITY_IAM --region us-east-1
-aws cloudformation describe-stacks --stack-name studio-ledger-releases --region us-east-1 --query 'Stacks[0].Outputs'
+aws cloudformation deploy --template-file infra/generated/stack.json --stack-name panoraiq-ledger-releases --capabilities CAPABILITY_IAM --region us-east-1
+aws cloudformation describe-stacks --stack-name panoraiq-ledger-releases --region us-east-1 --query 'Stacks[0].Outputs'
 ```
 
 Store the output bucket name and role ARN for the next step. Standard storage/request
@@ -61,7 +61,7 @@ changes the job’s branch environment variable. This follows
 
 ## 3. Restrict the CircleCI release context
 
-Create **studio-production** with project access restricted to this project and a
+Create **panoraiq-production** with project access restricted to this project and a
 security group restricted to release approvers. Set these non-secret identifiers:
 
 | Variable | Value |
@@ -96,7 +96,7 @@ be supported IAM claim keys. See the [AWS OIDC condition-key reference](https://
    blocked and test reports/logs remain available. Restore the test before merging.
 3. Merge the reviewed PR: `main` builds and tests, then waits for an authorized approver.
 4. Approve the release. `publish` checks the commit and archive checksum before STS
-   exchanges the V2 OIDC token. It uploads `releases/COMMIT/studio-image.tar.gz` and
+   exchanges the V2 OIDC token. It uploads `releases/COMMIT/panoraiq-image.tar.gz` and
    `manifest.json`. A `release-receipt.json` artifact records the S3 location and hash.
 5. Open a docs-only PR: the change script halts expensive jobs. A docs-only `main`
    workflow may still show its approval node; the downstream publish job also halts
@@ -112,14 +112,14 @@ Use your own authorized read session (the CI publishing role deliberately cannot
 the bucket). Replace `BUCKET` and `COMMIT` below:
 
 ```sh
-aws s3 cp s3://BUCKET/releases/COMMIT/studio-image.tar.gz studio-image.tar.gz
+aws s3 cp s3://BUCKET/releases/COMMIT/panoraiq-image.tar.gz panoraiq-image.tar.gz
 aws s3 cp s3://BUCKET/releases/COMMIT/manifest.json manifest.json
-python -c "import hashlib,json; expected=json.load(open('manifest.json'))['archive_sha256']; actual=hashlib.file_digest(open('studio-image.tar.gz','rb'),'sha256').hexdigest(); assert actual == expected; print('Checksum verified')"
-docker load --input studio-image.tar.gz
-docker image inspect studio-ledger:COMMIT --format '{{.Id}}'
+python -c "import hashlib,json; expected=json.load(open('manifest.json'))['archive_sha256']; actual=hashlib.file_digest(open('panoraiq-image.tar.gz','rb'),'sha256').hexdigest(); assert actual == expected; print('Checksum verified')"
+docker load --input panoraiq-image.tar.gz
+docker image inspect panoraiq-ledger:COMMIT --format '{{.Id}}'
 ```
 
 Compare the image ID with `manifest.json`, then run it with a persistent PostgreSQL
-`DATABASE_URL` and a fresh `SECRET_KEY`. Initialize its database with `flask --app studio
+`DATABASE_URL` and a fresh `SECRET_KEY`. Initialize its database with `flask --app panoraiq
 init-db` using the same image. Local Compose shows the runtime wiring. A public runtime
 also needs authenticated HTTPS access; the catalog is intentionally a single-user app.

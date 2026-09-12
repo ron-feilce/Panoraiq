@@ -3,18 +3,18 @@ services:
   db:
     image: postgres:16-bookworm
     environment:
-      POSTGRES_DB: studio_test
-      POSTGRES_USER: studio
+      POSTGRES_DB: panoraiq_test
+      POSTGRES_USER: panoraiq
       POSTGRES_PASSWORD: ci-only-password
     healthcheck:
-      test: [CMD-SHELL, "pg_isready -U studio -d studio_test"]
+      test: [CMD-SHELL, "pg_isready -U panoraiq -d panoraiq_test"]
       interval: 2s
       timeout: 3s
       retries: 30
   tests:
-    image: studio-tests:${IMAGE_TAG:-local}
+    image: panoraiq-tests:${IMAGE_TAG:-local}
     environment:
-      TEST_DATABASE_URL: postgresql+psycopg://studio:ci-only-password@db:5432/studio_test
+      TEST_DATABASE_URL: postgresql+psycopg://panoraiq:ci-only-password@db:5432/panoraiq_test
       REQUIRE_POSTGRES: "true"
       COVERAGE_FILE: /tmp/.coverage
     volumes:
@@ -23,9 +23,9 @@ services:
       db:
         condition: service_healthy
   app:
-    image: studio-ledger:${IMAGE_TAG:-local}
+    image: panoraiq:${IMAGE_TAG:-local}
     environment:
-      DATABASE_URL: postgresql+psycopg://studio:ci-only-password@db:5432/studio_test
+      DATABASE_URL: postgresql+psycopg://panoraiq:ci-only-password@db:5432/panoraiq_test
       SECRET_KEY: ephemeral-ci-session-key-never-used-outside-tests
     depends_on:
       db:
@@ -35,7 +35,7 @@ services:
       timeout: 5s
       retries: 30
   smoke:
-    image: studio-smoke:${IMAGE_TAG:-local}
+    image: panoraiq-smoke:${IMAGE_TAG:-local}
     command: ["http://app:8000"]
     depends_on:
       app:

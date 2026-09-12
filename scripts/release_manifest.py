@@ -15,9 +15,9 @@ if __name__ == "__main__":
     root = Path("artifacts")
     manifest = {
         "commit": os.environ["IMAGE_TAG"],
-        "image": f"studio-ledger:{os.environ['IMAGE_TAG']}",
+        "image": f"panoraiq-ledger:{os.environ['IMAGE_TAG']}",
         "image_id": (root / "image-id.txt").read_text().strip(),
-        "archive_sha256": sha256(root / "studio-image.tar.gz"),
+        "archive_sha256": sha256(root / "panoraiq-image.tar.gz"),
         "database": "PostgreSQL 16",
         "tests": "pytest + release image HTTP/DB smoke test",
     }

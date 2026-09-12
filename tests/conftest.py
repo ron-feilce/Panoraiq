@@ -3,8 +3,8 @@ import os
 import pytest
 from sqlalchemy.engine import make_url
 
-from studio import create_app
-from studio.models import db
+from panoraiq import create_app
+from panoraiq.models import db
 
 
 @pytest.fixture

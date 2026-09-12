@@ -28,7 +28,7 @@ def validate_release(env, manifest, archive):
 def publish():
     root = Path("artifacts")
     manifest = json.loads((root / "manifest.json").read_text())
-    archive = root / "studio-image.tar.gz"
+    archive = root / "panoraiq-image.tar.gz"
     commit = validate_release(os.environ, manifest, archive)
     # No static AWS keys are read; STS itself needs no prior credentials.
     from botocore import UNSIGNED
@@ -39,7 +39,7 @@ def publish():
     )
     credentials = sts.assume_role_with_web_identity(
         RoleArn=os.environ["AWS_ROLE_ARN"],
-        RoleSessionName=f"studio-{commit[:12]}",
+        RoleSessionName=f"panoraiq-{commit[:12]}",
         WebIdentityToken=os.environ["CIRCLE_OIDC_TOKEN_V2"],
         DurationSeconds=900,
     )["Credentials"]
@@ -52,7 +52,7 @@ def publish():
     )
     bucket = os.environ["ARTIFACT_BUCKET"]
     prefix = f"releases/{commit}"
-    for name in ("studio-image.tar.gz", "manifest.json"):
+    for name in ("panoraiq-image.tar.gz", "manifest.json"):
         s3.upload_file(
             str(root / name),
             bucket,
@@ -61,7 +61,7 @@ def publish():
         )
     receipt = {
         "commit": commit,
-        "artifact": f"s3://{bucket}/{prefix}/studio-image.tar.gz",
+        "artifact": f"s3://{bucket}/{prefix}/panoraiq-image.tar.gz",
         "archive_sha256": manifest["archive_sha256"],
     }
     (root / "release.json").write_text(json.dumps(receipt, indent=2) + "\n")

@@ -2,7 +2,7 @@ from datetime import date
 
 from sqlalchemy import select
 
-from studio.models import Submission, Work, db
+from panoraiq.models import Submission, Work, db
 
 
 def seed():

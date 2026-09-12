@@ -1,6 +1,6 @@
 # A five-minute walkthrough
 
-1. **Start with the work.** Open the seeded studio. *Observer State* is selected;
+1. **Start with the work.** Open the seeded panoraiq. *Observer State* is selected;
    paintings are waiting for their moment. These are explicit fictional demo records.
 2. **Show the relationships.** Add a painting and record an open-call submission.
    Change submitted to selected. Filter by painting and selected to find it.

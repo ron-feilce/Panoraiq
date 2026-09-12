@@ -112,7 +112,7 @@ def template(org, project, repository, bucket, existing_provider=None):
         }
     return {
         "AWSTemplateFormatVersion": "2010-09-09",
-        "Description": "Studio Ledger: private release artifacts and restricted CircleCI OIDC",
+        "Description": "Panoraiq: private release artifacts and restricted CircleCI OIDC",
         "Resources": resources,
         "Outputs": {
             "ArtifactBucket": {"Value": {"Ref": "Artifacts"}},

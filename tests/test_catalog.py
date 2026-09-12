@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
-from studio.models import DigitalEdition, Submission, Work, db
+from panoraiq.models import DigitalEdition, Submission, Work, db
 
 
 def add_work(client, form):

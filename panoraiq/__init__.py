@@ -10,7 +10,7 @@ from sqlalchemy import event, select, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from studio.models import MEDIA, STATUSES, DigitalEdition, Submission, Work, db
+from panoraiq.models import MEDIA, STATUSES, DigitalEdition, Submission, Work, db
 
 
 @event.listens_for(Engine, "connect")
@@ -68,7 +68,7 @@ def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
         SECRET_KEY=os.environ.get("SECRET_KEY"),
-        SQLALCHEMY_DATABASE_URI=os.environ.get("DATABASE_URL", "sqlite:///studio.db"),
+        SQLALCHEMY_DATABASE_URI=os.environ.get("DATABASE_URL", "sqlite:///panoraiq.db"),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         MAX_CONTENT_LENGTH=32 * 1024,
         SESSION_COOKIE_HTTPONLY=True,
@@ -79,7 +79,7 @@ def create_app(test_config=None):
         app.config.update(test_config)
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
     if not app.config["SECRET_KEY"]:
-        raise RuntimeError("Set SECRET_KEY to a random value before starting Studio Ledger.")
+        raise RuntimeError("Set SECRET_KEY to a random value before starting panoraiq Ledger.")
     db.init_app(app)
     CSRFProtect(app)
 
@@ -159,7 +159,7 @@ def create_app(test_config=None):
             db.session.commit()
         except ValueError as exc:
             return catalog(str(exc), 400)
-        flash("Work added to your studio.")
+        flash("Work added to your panoraiq.")
         return redirect(url_for("index", work=work.id), code=303)
 
     @app.post("/works/<work_id>/submissions")
@@ -221,12 +221,12 @@ def create_app(test_config=None):
     def init_db():
         """Create the initial schema; never drops existing records."""
         db.create_all()
-        click.echo("Studio schema ready.")
+        click.echo("panoraiq schema ready.")
 
     @app.cli.command("seed-demo")
     def seed_demo():
         """Add clearly fictional examples to an empty catalog only."""
-        from studio.seed import seed
+        from panoraiq.seed import seed
 
         seed()
         click.echo("Demo catalog ready.")

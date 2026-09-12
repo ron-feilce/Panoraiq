@@ -1,6 +1,6 @@
 *
-!studio/
-!studio/**
+!panoraiq/
+!panoraiq/**
 !tests/
 !tests/**
 !scripts/

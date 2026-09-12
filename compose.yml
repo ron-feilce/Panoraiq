@@ -2,23 +2,23 @@ services:
   db:
     image: postgres:16-bookworm
     environment:
-      POSTGRES_DB: studio
-      POSTGRES_USER: studio
+      POSTGRES_DB: panoraiq
+      POSTGRES_USER: panoraiq
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
-      - studio-db:/var/lib/postgresql/data
+      - panoraiq-db:/var/lib/postgresql/data
     healthcheck:
-      test: [CMD-SHELL, "pg_isready -U studio -d studio"]
+      test: [CMD-SHELL, "pg_isready -U panoraiq -d panoraiq"]
       interval: 3s
       timeout: 3s
       retries: 20
   app:
-    image: studio-ledger:local
+    image: panoraiq:local
     build:
       context: .
       target: runtime
     environment:
-      DATABASE_URL: postgresql+psycopg://studio:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/studio
+      DATABASE_URL: postgresql+psycopg://panoraiq:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@db:5432/panoraiq
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
     ports:
       - "127.0.0.1:8000:8000"
@@ -26,4 +26,4 @@ services:
       db:
         condition: service_healthy
 volumes:
-  studio-db:
+  panoraiq-db:
