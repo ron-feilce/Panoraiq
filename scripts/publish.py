@@ -1,4 +1,3 @@
-"""Exchange CircleCI OIDC for a short-lived, write-only release session."""
 """Publish the tested Panoraiq image to Amazon ECR using CircleCI OIDC."""
 
 import base64
