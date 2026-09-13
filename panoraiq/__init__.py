@@ -7,7 +7,7 @@ import click
 from flask import Flask, abort, flash, redirect, render_template, request, url_for
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import event, select, text
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import URL, Engine
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from panoraiq.models import MEDIA, STATUSES, DigitalEdition, Submission, Work, db
@@ -64,11 +64,28 @@ def form_date(name):
         raise ValueError(f"{name.replace('_', ' ').capitalize()} must be a valid date.") from None
 
 
+def database_url():
+    if os.environ.get("DATABASE_URL"):
+        return os.environ["DATABASE_URL"]
+
+    if os.environ.get("DB_HOST"):
+        return URL.create(
+            drivername="postgresql+psycopg",
+            username=os.environ["DB_USER"],
+            password=os.environ["DB_PASSWORD"],
+            host=os.environ["DB_HOST"],
+            port=int(os.environ.get("DB_PORT", "5432")),
+            database=os.environ.get("DB_NAME", "panoraiq"),
+        )
+
+    return "sqlite:///panoraiq.db"
+
+
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
         SECRET_KEY=os.environ.get("SECRET_KEY"),
-        SQLALCHEMY_DATABASE_URI=os.environ.get("DATABASE_URL", "sqlite:///panoraiq.db"),
+        SQLALCHEMY_DATABASE_URI=database_url(),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         MAX_CONTENT_LENGTH=32 * 1024,
         SESSION_COOKIE_HTTPONLY=True,
