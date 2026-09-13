@@ -7,8 +7,7 @@ import click
 from flask import Flask, abort, flash, redirect, render_template, request, url_for
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import event, select, text
-from sqlalchemy.engine import Engine
-from sqlalchemy.engine import URL
+from sqlalchemy.engine import Engine, URL
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from panoraiq.models import MEDIA, STATUSES, DigitalEdition, Submission, Work, db
