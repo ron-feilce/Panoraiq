@@ -17,6 +17,7 @@ def release(tmp_path):
         "AWS_ROLE_ARN": "test-role",
         "AWS_REGION": "us-east-1",
         "ARTIFACT_BUCKET": "test-bucket",
+        "ECR_REPOSITORY_URI": "857190082049.dkr.ecr.us-east-1.amazonaws.com/panoraiq",
     }
     manifest = {
         "commit": commit,
@@ -39,7 +40,7 @@ def test_matching_main_release_is_valid(release):
         ("CIRCLE_SHA1", "../invalid"),
         ("CIRCLE_OIDC_TOKEN_V2", ""),
         ("AWS_ROLE_ARN", ""),
-        ("ARTIFACT_BUCKET", ""),
+        ("ECR_REPOSITORY_URI", ""),
     ],
 )
 def test_unapproved_or_mismatched_release_rejected(release, name, value):

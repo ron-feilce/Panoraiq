@@ -54,21 +54,27 @@ jobs:
             - artifacts
 
   publish:
-    docker:
-      - image: cimg/python:3.12
+    machine:
+      image: ubuntu-2404:current
+
     steps:
       - checkout
+
       - run:
           name: Skip documentation-only releases
           command: bash scripts/ci-changes.sh
+
       - attach_workspace:
           at: .
+
       - run:
           name: Install release client
-          command: pip install boto3==1.42.68
+          command: python3 -m pip install --user boto3==1.42.68
+
       - run:
-          name: Exchange OIDC token and publish to private S3
-          command: python scripts/publish.py
+          name: Publish tested image to ECR
+          command: python3 scripts/publish.py
+
       - store_artifacts:
           path: artifacts/release.json
           destination: release-receipt.json
