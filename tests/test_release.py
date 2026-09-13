@@ -17,6 +17,7 @@ def release(tmp_path):
         "AWS_ROLE_ARN": "test-role",
         "AWS_REGION": "us-east-1",
         "ARTIFACT_BUCKET": "test-bucket",
+        "ECR_REPOSITORY_URI": "857190082049.dkr.ecr.us-east-1.amazonaws.com/panoraiq",
     }
     manifest = {
         "commit": commit,
