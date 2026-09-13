@@ -53,31 +53,31 @@ jobs:
           paths:
             - artifacts
 
-publish:
-  machine:
-    image: ubuntu-2404:current
+  publish:
+    machine:
+      image: ubuntu-2404:current
 
-  steps:
-    - checkout
+    steps:
+      - checkout
 
-    - run:
-        name: Skip documentation-only releases
-        command: bash scripts/ci-changes.sh
+      - run:
+          name: Skip documentation-only releases
+          command: bash scripts/ci-changes.sh
 
-    - attach_workspace:
-        at: .
+      - attach_workspace:
+          at: .
 
-    - run:
-        name: Install release client
-        command: python3 -m pip install --user boto3==1.42.68
+      - run:
+          name: Install release client
+          command: python3 -m pip install --user boto3==1.42.68
 
-    - run:
-        name: Publish tested image to ECR
-        command: python3 scripts/publish.py
+      - run:
+          name: Publish tested image to ECR
+          command: python3 scripts/publish.py
 
-    - store_artifacts:
-        path: artifacts/release.json
-        destination: release-receipt.json
+      - store_artifacts:
+          path: artifacts/release.json
+          destination: release-receipt.json
 
 workflows:
   panoraiq:
