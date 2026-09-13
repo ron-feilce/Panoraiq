@@ -40,7 +40,7 @@ def test_matching_main_release_is_valid(release):
         ("CIRCLE_SHA1", "../invalid"),
         ("CIRCLE_OIDC_TOKEN_V2", ""),
         ("AWS_ROLE_ARN", ""),
-        ("ARTIFACT_BUCKET", ""),
+        ("ECR_REPOSITORY_URI", ""),
     ],
 )
 def test_unapproved_or_mismatched_release_rejected(release, name, value):
