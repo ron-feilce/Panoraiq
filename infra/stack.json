@@ -186,6 +186,11 @@
 											"ecs:CreateAction": "RegisterTaskDefinition"
 											}
 									}
+								},
+								{
+								  "Effect": "Allow",
+								  "Action": "elasticloadbalancing:DescribeLoadBalancers",
+								  "Resource": "*"
 								}                								
 							]
 						}
