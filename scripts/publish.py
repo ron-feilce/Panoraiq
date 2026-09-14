@@ -1,4 +1,4 @@
-"""Publish the tested Panoraiq image to Amazon ECR using CircleCI OIDC."""
+"""Publish the tested Panoraiq image to Amazon ECR and deploy it using CircleCI OIDC."""
 
 import base64
 import hashlib
@@ -64,7 +64,7 @@ def publish():
         RoleArn=os.environ["AWS_ROLE_ARN"],
         RoleSessionName=f"panoraiq-{commit[:12]}",
         WebIdentityToken=os.environ["CIRCLE_OIDC_TOKEN_V2"],
-        DurationSeconds=900,
+        DurationSeconds=3600,
     )["Credentials"]
 
     ecr = boto3.client(
@@ -107,12 +107,41 @@ def publish():
     )["imageDetails"][0]
 
     image_digest = image["imageDigest"]
+    image_uri = f"{repository_uri}@{image_digest}"
+
+    cloudformation = boto3.client(
+        "cloudformation",
+        region_name=os.environ["AWS_REGION"],
+        aws_access_key_id=credentials["AccessKeyId"],
+        aws_secret_access_key=credentials["SecretAccessKey"],
+        aws_session_token=credentials["SessionToken"],
+    )
+
+    print(f"Deploying tested image: {image_uri}")
+
+    cloudformation.update_stack(
+        StackName="panoraiq-release",
+        UsePreviousTemplate=True,
+        Parameters=[
+            {
+                "ParameterKey": "PanoraiqImageUri",
+                "ParameterValue": image_uri,
+            }
+        ],
+        Capabilities=["CAPABILITY_NAMED_IAM"],
+    )
+
+    print("Waiting for CloudFormation deployment to complete...")
+
+    cloudformation.get_waiter("stack_update_complete").wait(
+        StackName="panoraiq-release"
+    )
 
     receipt = {
         "commit": commit,
         "image_tag": remote_image,
         "image_digest": image_digest,
-        "image": f"{repository_uri}@{image_digest}",
+        "image": image_uri,
         "archive_sha256": manifest["archive_sha256"],
     }
 
@@ -120,7 +149,7 @@ def publish():
         json.dumps(receipt, indent=2) + "\n"
     )
 
-    print(f"Published tested image: {repository_uri}@{image_digest}")
+    print(f"Published and deployed tested image: {image_uri}")
 
 
 if __name__ == "__main__":
