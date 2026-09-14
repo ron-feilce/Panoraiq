@@ -168,7 +168,12 @@
                   "Effect": "Allow",
                   "Action": "iam:GetRole",
                   "Resource": "arn:aws:iam::857190082049:role/panoraiq-ecs-task-execution"          
-                }								
+                },
+								{
+									"Effect": "Allow",
+									"Action": "rds:DescribeDBInstances",
+									"Resource": "arn:aws:rds:us-east-1:857190082049:db:panoraiq-db"
+								}                								
 							]
 						}
 					}
