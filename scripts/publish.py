@@ -131,7 +131,7 @@ def publish():
         Capabilities=["CAPABILITY_NAMED_IAM"],
     )
 
-    print("Waiting for CloudFormation deployment to complete...")
+    print("Waiting for Panoraiq deployment to complete...")
 
     cloudformation.get_waiter("stack_update_complete").wait(
         StackName="panoraiq-release"
