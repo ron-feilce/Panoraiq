@@ -1,0 +1,803 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "Panoraiq: private release artifacts and restricted CircleCI OIDC",
+	"Parameters": {
+		"PanoraiqImageUri": {
+			"Type": "String",
+			"Description": "Immutable ECR image URI for the Panoraiq deployment"
+		}
+	},
+	"Resources": {
+		"Artifacts": {
+			"Type": "AWS::S3::Bucket",
+			"DeletionPolicy": "Retain",
+			"UpdateReplacePolicy": "Retain",
+			"Properties": {
+				"BucketName": "raf-panoraiq-26-09",
+				"BucketEncryption": {
+					"ServerSideEncryptionConfiguration": [
+						{
+							"ServerSideEncryptionByDefault": {
+								"SSEAlgorithm": "AES256"
+							}
+						}
+					]
+				},
+				"PublicAccessBlockConfiguration": {
+					"BlockPublicAcls": true,
+					"BlockPublicPolicy": true,
+					"IgnorePublicAcls": true,
+					"RestrictPublicBuckets": true
+				},
+				"VersioningConfiguration": {
+					"Status": "Enabled"
+				},
+				"LifecycleConfiguration": {
+					"Rules": [
+						{
+							"Id": "AbortIncompleteUploads",
+							"Status": "Enabled",
+							"AbortIncompleteMultipartUpload": {
+								"DaysAfterInitiation": 1
+							}
+						}
+					]
+				}
+			}
+		},
+		"BucketPolicy": {
+			"Type": "AWS::S3::BucketPolicy",
+			"Properties": {
+				"Bucket": {
+					"Ref": "Artifacts"
+				},
+				"PolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Deny",
+							"Principal": "*",
+							"Action": "s3:*",
+							"Resource": [
+								"arn:aws:s3:::raf-panoraiq-26-09",
+								"arn:aws:s3:::raf-panoraiq-26-09/*"
+							],
+							"Condition": {
+								"Bool": {
+									"aws:SecureTransport": "false"
+								}
+							}
+						}
+					]
+				}
+			}
+		},
+		"PublisherRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"MaxSessionDuration": 3600,
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Principal": {
+								"Federated": {
+									"Ref": "CircleOIDC"
+								}
+							},
+							"Action": "sts:AssumeRoleWithWebIdentity",
+							"Condition": {
+								"StringEquals": {
+									"oidc.circleci.com/org/b4657266-f510-4c11-977b-bc7ef4005b07:aud": "b4657266-f510-4c11-977b-bc7ef4005b07"
+								},
+								"StringLike": {
+									"oidc.circleci.com/org/b4657266-f510-4c11-977b-bc7ef4005b07:sub": "org/b4657266-f510-4c11-977b-bc7ef4005b07/project/502440f4-8513-4d9e-8ec8-4fd6c3a2f49b/user/*/vcs-origin/github.com/ron-feilce/Panoraiq/vcs-ref/refs/heads/main"
+								}
+							}
+						}
+					]
+				},
+				"Policies": [
+					{
+						"PolicyName": "PublishTestedRelease",
+						"PolicyDocument": {
+							"Version": "2012-10-17",
+							"Statement": [
+								{
+									"Effect": "Allow",
+									"Action": [
+										"s3:PutObject",
+										"s3:AbortMultipartUpload"
+									],
+									"Resource": "arn:aws:s3:::raf-panoraiq-26-09/releases/*"
+								},
+								{
+									"Effect": "Allow",
+									"Action": [
+										"ecr:BatchCheckLayerAvailability",
+										"ecr:CompleteLayerUpload",
+										"ecr:InitiateLayerUpload",
+										"ecr:PutImage",
+										"ecr:UploadLayerPart",
+										"ecr:DescribeImages"
+									],
+									"Resource": "arn:aws:ecr:us-east-1:857190082049:repository/panoraiq"
+								},
+								{
+									"Effect": "Allow",
+									"Action": "ecr:GetAuthorizationToken",
+									"Resource": "*"
+								},
+								{
+								  "Effect": "Allow",
+								  "Action": [
+									"cloudformation:UpdateStack",
+									"cloudformation:DescribeStacks"
+								  ],
+								  "Resource": "arn:aws:cloudformation:us-east-1:857190082049:stack/panoraiq-release/*"
+								},
+								{
+								  "Effect": "Allow",
+								  "Action": [
+									"ecs:RegisterTaskDefinition",
+									"ecs:DeregisterTaskDefinition",
+									"ecs:DescribeTaskDefinition"
+								  ],
+								  "Resource": "*"
+								},
+								{
+								  "Effect": "Allow",
+								  "Action": [
+									"ecs:UpdateService",
+									"ecs:DescribeServices"
+								  ],
+								  "Resource": "arn:aws:ecs:us-east-1:857190082049:service/panoraiq/panoraiq"
+								},
+								{
+								  "Effect": "Allow",
+								  "Action": "iam:PassRole",
+								  "Resource": "arn:aws:iam::857190082049:role/panoraiq-ecs-task-execution",
+								  "Condition": {
+									"StringEquals": {
+									  "iam:PassedToService": "ecs-tasks.amazonaws.com"
+									}
+								  }
+								}								
+							]
+						}
+					}
+				]
+			}
+		},
+		"CircleOIDC": {
+			"Type": "AWS::IAM::OIDCProvider",
+			"Properties": {
+				"Url": "https://oidc.circleci.com/org/b4657266-f510-4c11-977b-bc7ef4005b07",
+				"ClientIdList": [
+					"b4657266-f510-4c11-977b-bc7ef4005b07"
+				]
+			}
+		},
+		"PanoraiqCluster": {
+			"Type": "AWS::ECS::Cluster",
+			"Properties": {
+				"ClusterName": "panoraiq"
+			}
+		},
+		"PanoraiqLogGroup": {
+			"Type": "AWS::Logs::LogGroup",
+			"Properties": {
+				"LogGroupName": "/ecs/panoraiq",
+				"RetentionInDays": 14
+			}
+		},
+		"PanoraiqTaskExecutionRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"RoleName": "panoraiq-ecs-task-execution",
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Principal": {
+								"Service": "ecs-tasks.amazonaws.com"
+							},
+							"Action": "sts:AssumeRole"
+						}
+					]
+				},
+				"Policies": [
+					{
+						"PolicyName": "ReadPanoraiqSecrets",
+						"PolicyDocument": {
+							"Version": "2012-10-17",
+							"Statement": [
+								{
+									"Effect": "Allow",
+									"Action": [
+										"secretsmanager:GetSecretValue"
+									],
+									"Resource": [
+										{
+											"Fn::GetAtt": [
+												"PanoraiqDatabase",
+												"MasterUserSecret.SecretArn"
+											]
+										},
+										{
+											"Ref": "PanoraiqFlaskSecret"
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"ManagedPolicyArns": [
+					"arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+				]
+			}
+		},
+		"PanoraiqTaskDefinition": {
+			"Type": "AWS::ECS::TaskDefinition",
+			"Properties": {
+				"Family": "panoraiq",
+				"RequiresCompatibilities": [
+					"FARGATE"
+				],
+				"NetworkMode": "awsvpc",
+				"Cpu": "256",
+				"Memory": "512",
+				"ExecutionRoleArn": {
+					"Fn::GetAtt": [
+						"PanoraiqTaskExecutionRole",
+						"Arn"
+					]
+				},
+				"ContainerDefinitions": [
+					{
+						"Name": "panoraiq",
+						"Image": {
+							"Ref": "PanoraiqImageUri"
+						},
+						"Essential": true,
+						"PortMappings": [
+							{
+								"ContainerPort": 8000,
+								"Protocol": "tcp"
+							}
+						],
+						"Environment": [
+							{
+								"Name": "DB_HOST",
+								"Value": {
+									"Fn::GetAtt": [
+										"PanoraiqDatabase",
+										"Endpoint.Address"
+									]
+								}
+							},
+							{
+								"Name": "DB_PORT",
+								"Value": "5432"
+							},
+							{
+								"Name": "DB_NAME",
+								"Value": "panoraiq"
+							}
+						],
+						"Secrets": [
+							{
+								"Name": "DB_USER",
+								"ValueFrom": {
+									"Fn::Sub": [
+										"${SecretArn}:username::",
+										{
+											"SecretArn": {
+												"Fn::GetAtt": [
+													"PanoraiqDatabase",
+													"MasterUserSecret.SecretArn"
+												]
+											}
+										}
+									]
+								}
+							},
+							{
+								"Name": "DB_PASSWORD",
+								"ValueFrom": {
+									"Fn::Sub": [
+										"${SecretArn}:password::",
+										{
+											"SecretArn": {
+												"Fn::GetAtt": [
+													"PanoraiqDatabase",
+													"MasterUserSecret.SecretArn"
+												]
+											}
+										}
+									]
+								}
+							},
+							{
+								"Name": "SECRET_KEY",
+								"ValueFrom": {
+									"Ref": "PanoraiqFlaskSecret"
+								}
+							}
+						],
+						"LogConfiguration": {
+							"LogDriver": "awslogs",
+							"Options": {
+								"awslogs-group": {
+									"Ref": "PanoraiqLogGroup"
+								},
+								"awslogs-region": "us-east-1",
+								"awslogs-stream-prefix": "panoraiq"
+							}
+						},
+						"HealthCheck": {
+							"Command": [
+								"CMD-SHELL",
+								"python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3)\" || exit 1"
+							],
+							"Interval": 30,
+							"Timeout": 5,
+							"Retries": 3,
+							"StartPeriod": 10
+						}
+					}
+				]
+			}
+		},
+		"PanoraiqVpc": {
+			"Type": "AWS::EC2::VPC",
+			"Properties": {
+				"CidrBlock": "10.20.0.0/16",
+				"EnableDnsSupport": true,
+				"EnableDnsHostnames": true,
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": "panoraiq"
+					}
+				]
+			}
+		},
+		"PanoraiqInternetGateway": {
+			"Type": "AWS::EC2::InternetGateway",
+			"Properties": {
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": "panoraiq-igw"
+					}
+				]
+			}
+		},
+		"PanoraiqInternetGatewayAttachment": {
+			"Type": "AWS::EC2::VPCGatewayAttachment",
+			"Properties": {
+				"VpcId": {
+					"Ref": "PanoraiqVpc"
+				},
+				"InternetGatewayId": {
+					"Ref": "PanoraiqInternetGateway"
+				}
+			}
+		},
+		"PanoraiqPublicSubnetA": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "PanoraiqVpc"
+				},
+				"CidrBlock": "10.20.1.0/24",
+				"AvailabilityZone": {
+					"Fn::Select": [
+						0,
+						{
+							"Fn::GetAZs": ""
+						}
+					]
+				},
+				"MapPublicIpOnLaunch": true,
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": "panoraiq-public-a"
+					}
+				]
+			}
+		},
+		"PanoraiqPublicSubnetB": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "PanoraiqVpc"
+				},
+				"CidrBlock": "10.20.2.0/24",
+				"AvailabilityZone": {
+					"Fn::Select": [
+						1,
+						{
+							"Fn::GetAZs": ""
+						}
+					]
+				},
+				"MapPublicIpOnLaunch": true,
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": "panoraiq-public-b"
+					}
+				]
+			}
+		},
+		"PanoraiqPrivateSubnetA": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "PanoraiqVpc"
+				},
+				"CidrBlock": "10.20.11.0/24",
+				"AvailabilityZone": {
+					"Fn::Select": [
+						0,
+						{
+							"Fn::GetAZs": ""
+						}
+					]
+				},
+				"MapPublicIpOnLaunch": false,
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": "panoraiq-private-a"
+					}
+				]
+			}
+		},
+		"PanoraiqPrivateSubnetB": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "PanoraiqVpc"
+				},
+				"CidrBlock": "10.20.12.0/24",
+				"AvailabilityZone": {
+					"Fn::Select": [
+						1,
+						{
+							"Fn::GetAZs": ""
+						}
+					]
+				},
+				"MapPublicIpOnLaunch": false,
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": "panoraiq-private-b"
+					}
+				]
+			}
+		},
+		"PanoraiqPublicRouteTable": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "PanoraiqVpc"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": "panoraiq-public"
+					}
+				]
+			}
+		},
+		"PanoraiqDefaultPublicRoute": {
+			"Type": "AWS::EC2::Route",
+			"DependsOn": "PanoraiqInternetGatewayAttachment",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "PanoraiqPublicRouteTable"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"GatewayId": {
+					"Ref": "PanoraiqInternetGateway"
+				}
+			}
+		},
+		"PanoraiqPublicSubnetARouteTableAssociation": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "PanoraiqPublicSubnetA"
+				},
+				"RouteTableId": {
+					"Ref": "PanoraiqPublicRouteTable"
+				}
+			}
+		},
+		"PanoraiqPublicSubnetBRouteTableAssociation": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "PanoraiqPublicSubnetB"
+				},
+				"RouteTableId": {
+					"Ref": "PanoraiqPublicRouteTable"
+				}
+			}
+		},
+		"PanoraiqAlbSecurityGroup": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Public access to the Panoraiq load balancer",
+				"VpcId": {
+					"Ref": "PanoraiqVpc"
+				},
+				"SecurityGroupIngress": [
+					{
+						"IpProtocol": "tcp",
+						"FromPort": 80,
+						"ToPort": 80,
+						"CidrIp": "0.0.0.0/0"
+					}
+				]
+			}
+		},
+		"PanoraiqEcsSecurityGroup": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Allow Panoraiq traffic only from the load balancer",
+				"VpcId": {
+					"Ref": "PanoraiqVpc"
+				},
+				"SecurityGroupIngress": [
+					{
+						"IpProtocol": "tcp",
+						"FromPort": 8000,
+						"ToPort": 8000,
+						"SourceSecurityGroupId": {
+							"Ref": "PanoraiqAlbSecurityGroup"
+						}
+					}
+				]
+			}
+		},
+		"PanoraiqDbSecurityGroup": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"GroupDescription": "Allow PostgreSQL only from Panoraiq ECS tasks",
+				"VpcId": {
+					"Ref": "PanoraiqVpc"
+				},
+				"SecurityGroupIngress": [
+					{
+						"IpProtocol": "tcp",
+						"FromPort": 5432,
+						"ToPort": 5432,
+						"SourceSecurityGroupId": {
+							"Ref": "PanoraiqEcsSecurityGroup"
+						}
+					}
+				]
+			}
+		},
+		"PanoraiqDbSubnetGroup": {
+			"Type": "AWS::RDS::DBSubnetGroup",
+			"Properties": {
+				"DBSubnetGroupDescription": "Private subnets for Panoraiq PostgreSQL",
+				"SubnetIds": [
+					{
+						"Ref": "PanoraiqPrivateSubnetA"
+					},
+					{
+						"Ref": "PanoraiqPrivateSubnetB"
+					}
+				],
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": "panoraiq-db"
+					}
+				]
+			}
+		},
+		"PanoraiqDatabase": {
+			"Type": "AWS::RDS::DBInstance",
+			"DeletionPolicy": "Snapshot",
+			"UpdateReplacePolicy": "Snapshot",
+			"Properties": {
+				"DBInstanceIdentifier": "panoraiq-db",
+				"Engine": "postgres",
+				"DBName": "panoraiq",
+				"MasterUsername": "panoraiq_admin",
+				"ManageMasterUserPassword": true,
+				"DBInstanceClass": "db.t4g.micro",
+				"AllocatedStorage": "20",
+				"StorageType": "gp3",
+				"StorageEncrypted": true,
+				"MultiAZ": false,
+				"PubliclyAccessible": false,
+				"BackupRetentionPeriod": 7,
+				"DBSubnetGroupName": {
+					"Ref": "PanoraiqDbSubnetGroup"
+				},
+				"VPCSecurityGroups": [
+					{
+						"Ref": "PanoraiqDbSecurityGroup"
+					}
+				]
+			}
+		},
+		"PanoraiqFlaskSecret": {
+			"Type": "AWS::SecretsManager::Secret",
+			"Properties": {
+				"Description": "Flask SECRET_KEY for Panoraiq",
+				"GenerateSecretString": {
+					"PasswordLength": 64,
+					"ExcludePunctuation": true
+				}
+			}
+		},
+		"PanoraiqLoadBalancer": {
+			"Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+			"DependsOn": "PanoraiqDefaultPublicRoute",
+			"Properties": {
+				"Name": "panoraiq",
+				"Scheme": "internet-facing",
+				"Type": "application",
+				"SecurityGroups": [
+					{
+						"Ref": "PanoraiqAlbSecurityGroup"
+					}
+				],
+				"Subnets": [
+					{
+						"Ref": "PanoraiqPublicSubnetA"
+					},
+					{
+						"Ref": "PanoraiqPublicSubnetB"
+					}
+				]
+			}
+		},
+		"PanoraiqTargetGroup": {
+			"Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+			"Properties": {
+				"Name": "panoraiq",
+				"VpcId": {
+					"Ref": "PanoraiqVpc"
+				},
+				"Protocol": "HTTP",
+				"Port": 8000,
+				"TargetType": "ip",
+				"HealthCheckEnabled": true,
+				"HealthCheckProtocol": "HTTP",
+				"HealthCheckPath": "/healthz",
+				"HealthCheckPort": "traffic-port",
+				"HealthyThresholdCount": 2,
+				"UnhealthyThresholdCount": 3,
+				"HealthCheckIntervalSeconds": 30,
+				"HealthCheckTimeoutSeconds": 5,
+				"Matcher": {
+					"HttpCode": "200"
+				}
+			}
+		},
+		"PanoraiqHttpListener": {
+			"Type": "AWS::ElasticLoadBalancingV2::Listener",
+			"Properties": {
+				"LoadBalancerArn": {
+					"Ref": "PanoraiqLoadBalancer"
+				},
+				"Protocol": "HTTP",
+				"Port": 80,
+				"DefaultActions": [
+					{
+						"Type": "forward",
+						"TargetGroupArn": {
+							"Ref": "PanoraiqTargetGroup"
+						}
+					}
+				]
+			}
+		},
+		"PanoraiqService": {
+			"Type": "AWS::ECS::Service",
+			"DependsOn": "PanoraiqHttpListener",
+			"Properties": {
+				"ServiceName": "panoraiq",
+				"Cluster": {
+					"Ref": "PanoraiqCluster"
+				},
+				"TaskDefinition": {
+					"Ref": "PanoraiqTaskDefinition"
+				},
+				"LaunchType": "FARGATE",
+				"DesiredCount": 1,
+				"HealthCheckGracePeriodSeconds": 60,
+				"EnableECSManagedTags": true,
+				"NetworkConfiguration": {
+					"AwsvpcConfiguration": {
+						"AssignPublicIp": "ENABLED",
+						"SecurityGroups": [
+							{
+								"Ref": "PanoraiqEcsSecurityGroup"
+							}
+						],
+						"Subnets": [
+							{
+								"Ref": "PanoraiqPublicSubnetA"
+							},
+							{
+								"Ref": "PanoraiqPublicSubnetB"
+							}
+						]
+					}
+				},
+				"LoadBalancers": [
+					{
+						"ContainerName": "panoraiq",
+						"ContainerPort": 8000,
+						"TargetGroupArn": {
+							"Ref": "PanoraiqTargetGroup"
+						}
+					}
+				]
+			}
+		}
+	},
+	"Outputs": {
+		"ArtifactBucket": {
+			"Value": {
+				"Ref": "Artifacts"
+			}
+		},
+		"DatabaseEndpoint": {
+			"Value": {
+				"Fn::GetAtt": [
+					"PanoraiqDatabase",
+					"Endpoint.Address"
+				]
+			}
+		},
+		"DatabaseSecretArn": {
+			"Value": {
+				"Fn::GetAtt": [
+					"PanoraiqDatabase",
+					"MasterUserSecret.SecretArn"
+				]
+			}
+		},
+		"PublisherRoleArn": {
+			"Value": {
+				"Fn::GetAtt": [
+					"PublisherRole",
+					"Arn"
+				]
+			}
+		},
+		"PanoraiqUrl": {
+			"Description": "Public Panoraiq URL",
+			"Value": {
+				"Fn::Sub": [
+					"http://${DnsName}",
+					{
+						"DnsName": {
+							"Fn::GetAtt": [
+								"PanoraiqLoadBalancer",
+								"DNSName"
+							]
+						}
+					}
+				]
+			}
+		}
+	}
+}
