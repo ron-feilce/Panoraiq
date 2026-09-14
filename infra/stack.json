@@ -173,6 +173,16 @@
 									"Effect": "Allow",
 									"Action": "rds:DescribeDBInstances",
 									"Resource": "*"
+								},
+								{
+									"Effect": "Allow",
+									"Action": "ecs:TagResource",
+									"Resource": "arn:aws:ecs:us-east-1:857190082049:task-definition/panoraiq:*",
+									"Condition": {
+										"StringEquals": {
+											"ecs:CreateAction": "RegisterTaskDefinition"
+											}
+									}
 								}                								
 							]
 						}
